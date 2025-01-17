@@ -1,5 +1,6 @@
 use super::{Mnemonic,Seed,Language,MnemonicType};
 use super::{wasm_bindgen, JsValue, Serialize, encode};
+use serde_wasm_bindgen::to_value;
 
 
 
@@ -23,18 +24,21 @@ impl JsSeed {
         })?;
         Ok(value)
     }
-    #[wasm_bindgen(getter)]
-    pub fn as_bytes(&self) -> Vec<u8> {
-        self.seed.clone()
+    #[wasm_bindgen(getter = seed)]
+    pub fn as_bytes(&self) -> Result<JsValue, JsValue> {
+        Ok(serde_wasm_bindgen::to_value(&self.seed.clone())?)
     }
-    #[wasm_bindgen(getter)]
-    pub fn as_hex(&self) -> String {
-        encode(&self.seed)
-    }
-    #[wasm_bindgen(getter)]
+    
+     #[wasm_bindgen(getter = mnemonic)]
     pub fn as_mnemonic(&self) -> String {
         self.mnemonic.clone()
     }
+
+    #[wasm_bindgen(js_name = asHex)]
+    pub fn as_hex(&self) -> Result<JsValue, JsValue> {
+        Ok(to_value(&encode(&self.seed))?)
+    }
+   
 
     #[wasm_bindgen(js_name = fromStr)]
     pub fn from_str(str: &str) -> JsSeed {

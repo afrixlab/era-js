@@ -1,0 +1,5 @@
+{
+  "dependencies": {
+    "era-js": "file:../pkg"
+  }
+}

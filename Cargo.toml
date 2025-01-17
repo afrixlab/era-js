@@ -3,6 +3,9 @@ name = "era-js"
 version = "0.1.0"
 authors = ["BukiOffor <ebuka2264@yahoo.com>"]
 edition = "2018"
+description = "A package that handles the cryptographic operations for the ERA project"
+repository = "https://github.com/BukiOffor/era-js"
+license = "MIT/Apache-2.0"
 
 [lib]
 crate-type = ["cdylib", "rlib"]
@@ -12,17 +15,12 @@ default = ["console_error_panic_hook"]
 
 [dependencies]
 getrandom = "0.2"
-wasm-bindgen = { version = "0.2.84", features = ["serde-serialize"] }
+wasm-bindgen = { version = "0.2.100", features = ["serde-serialize"] }
 reed-solomon-erasure = "6.0.0"
 tiny-bip39 = "2.0.0"
 hex = "*"
 serde = { version="1.0.217", features=["derive"]}
 serde_json = { version = "1.0.81", features = ["preserve_order"] }
-
-# The `console_error_panic_hook` crate provides better debugging of panics by
-# logging them with `console.error`. This is great for development, but requires
-# all the `std::fmt` and `std::panicking` infrastructure, so isn't great for
-# code size when deploying.
 console_error_panic_hook = { version = "0.1.7", optional = true }
 serde-wasm-bindgen = "0.6.5"
 
