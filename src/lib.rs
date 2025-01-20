@@ -1,14 +1,15 @@
 mod crypto;
 mod erasure_coding;
-mod seed;
-
+mod key;
 
 pub use crypto::*;
 pub use erasure_coding::*;
-pub use seed::*;
+pub use key::*;
 
+use bip39::{Language, Mnemonic, MnemonicType, Seed};
+use hex::*;
+use js_sys::Uint8Array;
 use serde::Serialize;
 use wasm_bindgen::prelude::*;
-use hex::*;
-use bip39::{Mnemonic, Seed, MnemonicType, Language};
+
 //use serde_json::*;
