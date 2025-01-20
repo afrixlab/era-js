@@ -4,7 +4,7 @@ use super::{Language, Mnemonic, MnemonicType, Seed};
 use serde_wasm_bindgen::to_value;
 
 #[wasm_bindgen]
-pub struct Key {
+pub struct Account{
     seed: Vec<u8>,
     mnemonic: String,
 }
@@ -13,12 +13,12 @@ pub struct Key {
 
 
 #[wasm_bindgen]
-impl Key {
+impl Account{
     #[wasm_bindgen(constructor)]
-    pub fn new(length: KeyLength, lang: KeyLanguage) -> Key {
+    pub fn new(length: KeyLength, lang: KeyLanguage) -> Self {
         let mnemonic = Mnemonic::new(MnemonicType::from(length), Language::from(lang));
         let seed = Seed::new(&mnemonic, "");
-        let value = Key {
+        let value = Account{
             seed: seed.as_bytes().to_vec(),
             mnemonic: mnemonic.phrase().to_string(),
         };
@@ -40,12 +40,12 @@ impl Key {
     }
 
     #[wasm_bindgen]
-    pub fn from_str(str: &str) -> Key {
+    pub fn from_str(str: &str) -> Self {
         let seed = Seed::new(
             &Mnemonic::from_phrase(str, bip39::Language::English).unwrap(),
             "",
         );
-        Key {
+        Account{
             seed: seed.as_bytes().to_vec(),
             mnemonic: str.to_string(),
         }
@@ -67,12 +67,12 @@ impl Key {
     }
 }
 
-#[wasm_bindgen(js_name = keyFromMnemonic)]
-pub fn from_mnemonic(mnemonic: &str) -> Result<Key, JsValue> {
+#[wasm_bindgen(js_name = accountFromMnemonic)]
+pub fn from_mnemonic(mnemonic: &str) -> Result<Account, JsValue> {
     let mnemonic = Mnemonic::from_phrase(mnemonic, bip39::Language::English)
         .map_err(|e| JsValue::from_str(&e.to_string()))?;
     let seed = Seed::new(&mnemonic, "");
-    Ok(Key {
+    Ok(Account{
         seed: seed.as_bytes().to_vec(),
         mnemonic: mnemonic.to_string(),
     })
