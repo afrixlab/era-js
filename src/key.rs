@@ -1,10 +1,11 @@
 use super::Uint8Array;
 use super::{encode, wasm_bindgen, JsValue};
 use super::{Language, Mnemonic, MnemonicType, Seed};
+use crate::crypto::KeyPath;
 use bip32::Prefix;
 use serde_wasm_bindgen::to_value;
-use crate::crypto::KeyPath;
 
+/// Represents a BIP-32 account. This object contains a seed and a it's mnemonic.
 #[wasm_bindgen]
 pub struct Account {
     seed: Vec<u8>,
@@ -13,6 +14,16 @@ pub struct Account {
 
 #[wasm_bindgen]
 impl Account {
+    /// Creates a new Account instance
+    ///
+    /// # Arguments
+    ///
+    /// * `length` - An enum containing the length of the mnemonic
+    /// * `lang` - The language of the mnemonic
+    ///
+    /// # Returns
+    ///
+    /// A new Account instance
     #[wasm_bindgen(constructor)]
     pub fn new(length: KeyLength, lang: KeyLanguage) -> Self {
         let mnemonic = Mnemonic::new(MnemonicType::from(length), Language::from(lang));
@@ -23,16 +34,31 @@ impl Account {
         };
         value
     }
+    /// Converts the account to a byte array
+    ///  
+    /// # Returns
+    ///
+    /// The seed as a byte array
     #[wasm_bindgen]
     pub fn as_bytes(&self) -> Uint8Array {
         Uint8Array::from(self.seed.as_slice())
     }
 
+    /// Converts the account to its coresponding mnemonic
+    ///  
+    /// # Returns
+    ///
+    /// The mnemonic as a string
     #[wasm_bindgen]
     pub fn as_mnemonic(&self) -> String {
         self.mnemonic.clone()
     }
 
+    /// Converts the account seed to a hex string
+    ///  
+    /// # Returns
+    ///
+    /// The seed as a hex string. The seed is prefixed with `0x`
     #[wasm_bindgen]
     pub fn as_hex(&self) -> Result<JsValue, JsValue> {
         let seed = format!("0x{}", encode(&self.seed));
@@ -51,32 +77,66 @@ impl Account {
         }
     }
 
+    /// Converts the account to a byte array
+    ///  
+    /// # Returns
+    ///
+    /// The seed as a byte array
     #[wasm_bindgen]
     pub fn to_bytes(&self) -> Vec<u8> {
         self.seed.clone()
     }
 
+    /// Converts the account to its coresponding mnemonic
+    ///  
+    /// # Returns
+    ///
+    /// The mnemonic as a string
     #[wasm_bindgen]
     pub fn to_str(&self) -> String {
         self.mnemonic.clone()
     }
 
+    /// Converts the account to its coresponding mnemonic
+    ///  
+    /// # Returns
+    ///
+    /// The mnemonic as a string
     #[wasm_bindgen]
     pub fn to_mnemonic(&self) -> String {
         self.mnemonic.clone()
     }
 
+    /// Derives the root private key from the seed. This is the `m` path in the BIP-32 derivation path
+    ///  
+    /// # Returns
+    ///
+    /// The root private key as a hex string. The private key is prefixed with `0x`
     #[wasm_bindgen]
     pub fn derive_root_key(&self) -> String {
         let xpriv = self.generate_root_key();
-        hex::encode(xpriv.to_bytes())
+        format!("0x{}", encode(xpriv.to_bytes()))
     }
 
+    /// Derives the root public key from the seed.
+    ///  
+    /// # Returns
+    ///
+    /// The root public key as a hex string.
     #[wasm_bindgen]
     pub fn derive_root_public_key(&self) -> String {
         let xpub = self.generate_root_public_key();
         xpub.to_string(Prefix::XPUB)
     }
+
+    /// Derives an extended key from the seed when given a path.
+    /// # Arguments
+    ///
+    /// * `path` - A String representing the derivation path. The path should be in the BIP-32 format.
+    ///  
+    /// # Returns
+    ///
+    /// The root public key as a hex string.
     #[wasm_bindgen]
     pub fn derive_extended_key(&self, path: &str) -> JsValue {
         let key_object = self.generate_extended_key(path);
@@ -84,6 +144,14 @@ impl Account {
     }
 }
 
+/// Derives an account from a mnemonic.
+/// # Arguments
+///
+/// * `mnemonic` - A String of the mnemonic. It can be 12, 15, 18, 21 or 24 words.
+///  
+/// # Returns
+///
+/// The Account Object.
 #[wasm_bindgen(js_name = accountFromMnemonic)]
 pub fn from_mnemonic(mnemonic: &str) -> Result<Account, JsValue> {
     let mnemonic = Mnemonic::from_phrase(mnemonic, bip39::Language::English)
@@ -95,6 +163,7 @@ pub fn from_mnemonic(mnemonic: &str) -> Result<Account, JsValue> {
     })
 }
 
+/// The keyLength enum represents the length of the mnemonic. It can be 12, 15, 18, 21 or 24 words.
 #[wasm_bindgen]
 pub enum KeyLength {
     Words12,
@@ -104,6 +173,7 @@ pub enum KeyLength {
     Words24,
 }
 impl From<KeyLength> for MnemonicType {
+    /// converts the keyLength enum to the MnemonicType enum
     fn from(key_type: KeyLength) -> Self {
         match key_type {
             KeyLength::Words12 => MnemonicType::Words12,
@@ -115,6 +185,7 @@ impl From<KeyLength> for MnemonicType {
     }
 }
 
+/// The keyLanguage enum represents the language of the mnemonic. It can be English, Japanese, Spanish, ChineseSimplified, ChineseTraditional, French, Italian or Korean.
 #[wasm_bindgen]
 pub enum KeyLanguage {
     English,
@@ -128,6 +199,7 @@ pub enum KeyLanguage {
 }
 
 impl From<KeyLanguage> for Language {
+    /// converts the keyLanguage enum to the Language enum
     fn from(key_language: KeyLanguage) -> Self {
         match key_language {
             KeyLanguage::English => Language::English,
