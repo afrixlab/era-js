@@ -40,8 +40,9 @@ impl KeyPath for Account {
         let path = <DerivationPath as std::str::FromStr>::from_str(path).unwrap();
         let prefix = Prefix::XPUB;
         let xpriv = XPrv::derive_from_path(self.to_bytes(), &path).unwrap();
+        let private_key = format!("0x{}", hex::encode(xpriv.to_bytes()));
         let key_object = KeyObject {
-            private_key: hex::encode(xpriv.to_bytes()),
+            private_key,
             public_key: xpriv.public_key().to_string(prefix),
             mnemonic: self.to_str(),
             path: path.to_string(),
