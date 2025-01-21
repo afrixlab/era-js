@@ -9,7 +9,8 @@ pub use key::*;
 use bip39::{Language, Mnemonic, MnemonicType, Seed};
 use hex::*;
 use js_sys::Uint8Array;
-use serde::Serialize;
+//use serde::Serialize;
 use wasm_bindgen::prelude::*;
+use bip32::*;
 
 //use serde_json::*;

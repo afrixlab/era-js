@@ -1,24 +1,23 @@
 use super::Uint8Array;
 use super::{encode, wasm_bindgen, JsValue};
 use super::{Language, Mnemonic, MnemonicType, Seed};
+use bip32::Prefix;
 use serde_wasm_bindgen::to_value;
+use crate::crypto::KeyPath;
 
 #[wasm_bindgen]
-pub struct Account{
+pub struct Account {
     seed: Vec<u8>,
     mnemonic: String,
 }
 
-
-
-
 #[wasm_bindgen]
-impl Account{
+impl Account {
     #[wasm_bindgen(constructor)]
     pub fn new(length: KeyLength, lang: KeyLanguage) -> Self {
         let mnemonic = Mnemonic::new(MnemonicType::from(length), Language::from(lang));
         let seed = Seed::new(&mnemonic, "");
-        let value = Account{
+        let value = Account {
             seed: seed.as_bytes().to_vec(),
             mnemonic: mnemonic.phrase().to_string(),
         };
@@ -36,7 +35,8 @@ impl Account{
 
     #[wasm_bindgen]
     pub fn as_hex(&self) -> Result<JsValue, JsValue> {
-        Ok(to_value(&encode(&self.seed))?)
+        let seed = format!("0x{}", encode(&self.seed));
+        Ok(to_value(&seed)?)
     }
 
     #[wasm_bindgen]
@@ -45,7 +45,7 @@ impl Account{
             &Mnemonic::from_phrase(str, bip39::Language::English).unwrap(),
             "",
         );
-        Account{
+        Account {
             seed: seed.as_bytes().to_vec(),
             mnemonic: str.to_string(),
         }
@@ -65,6 +65,23 @@ impl Account{
     pub fn to_mnemonic(&self) -> String {
         self.mnemonic.clone()
     }
+
+    #[wasm_bindgen]
+    pub fn derive_root_key(&self) -> String {
+        let xpriv = self.generate_root_key();
+        hex::encode(xpriv.to_bytes())
+    }
+
+    #[wasm_bindgen]
+    pub fn derive_root_public_key(&self) -> String {
+        let xpub = self.generate_root_public_key();
+        xpub.to_string(Prefix::XPUB)
+    }
+    #[wasm_bindgen]
+    pub fn derive_extended_key(&self, path: &str) -> JsValue {
+        let key_object = self.generate_extended_key(path);
+        to_value(&key_object).unwrap()
+    }
 }
 
 #[wasm_bindgen(js_name = accountFromMnemonic)]
@@ -72,13 +89,11 @@ pub fn from_mnemonic(mnemonic: &str) -> Result<Account, JsValue> {
     let mnemonic = Mnemonic::from_phrase(mnemonic, bip39::Language::English)
         .map_err(|e| JsValue::from_str(&e.to_string()))?;
     let seed = Seed::new(&mnemonic, "");
-    Ok(Account{
+    Ok(Account {
         seed: seed.as_bytes().to_vec(),
         mnemonic: mnemonic.to_string(),
     })
 }
-
-
 
 #[wasm_bindgen]
 pub enum KeyLength {
