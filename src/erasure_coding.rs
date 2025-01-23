@@ -24,6 +24,19 @@ impl Display for ErasureError {
         }
     }
 }
+
+    /// Encodes a byte array into fragments using Reed-Solomon erasure coding.
+    /// The byte array must be a multiple of the data shards.
+    ///
+    /// # Arguments
+    ///
+    /// * `data` - The data to encode
+    /// * `data_shards` - The number of data shards to encode the data into
+    /// * `parity_shards` - The number of parity shards to encode the data into
+    ///
+    /// # Returns
+    ///
+    /// A Vec of byte arrays containing the encoded data.
 #[wasm_bindgen(js_name = encodeFragment)]
 pub fn encode_fragment(data: Vec<u8>, data_shards: usize, parity_shards: usize) -> Result<JsValue, JsValue> {
      if data.len() % data_shards != 0 {
