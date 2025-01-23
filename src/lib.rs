@@ -14,5 +14,6 @@ use reed_solomon_erasure::galois_8::ReedSolomon;
 use serde::Serialize;
 use bip32::*;
 use wasm_bindgen::prelude::*;
+use serde_wasm_bindgen::to_value;
 
 //use serde_json::*;

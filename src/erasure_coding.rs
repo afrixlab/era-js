@@ -1,24 +1,31 @@
 use std::fmt::Display;
 use std::fmt;
 
-use super::ReedSolomon;
+
+use super::{ReedSolomon, wasm_bindgen, JsValue, to_value};
 
 #[derive(Debug)]
-pub enum Error {
+pub enum ErasureError {
     FragmentationError,
 }
 
-impl std::error::Error for Error {}
+impl std::error::Error for ErasureError {}
 
-impl Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Error::FragmentationError => write!(f, "Fragmentation error"),
-        }
+impl Into<JsValue> for ErasureError {
+    fn into(self) -> JsValue {
+        JsValue::from_str(&self.to_string())
     }
 }
 
-pub fn encode_fragment(data: Vec<u8>, data_shards: usize, parity_shards: usize) -> Result<Vec<Vec<u8>>, Error> {
+impl Display for ErasureError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            ErasureError::FragmentationError => write!(f, "Fragmentation error"),
+        }
+    }
+}
+#[wasm_bindgen(js_name = encodeFragment)]
+pub fn encode_fragment(data: Vec<u8>, data_shards: usize, parity_shards: usize) -> Result<JsValue, JsValue> {
      if data.len() % data_shards != 0 {
         panic!("fragmentation error")
     }
@@ -29,7 +36,7 @@ pub fn encode_fragment(data: Vec<u8>, data_shards: usize, parity_shards: usize) 
         shards.push(data[(size_per_shard * i)..size_per_shard * (i + 1)].to_vec());
     }
     (0..parity_shards).for_each(|_| shards.push(vec![0; size_per_shard]));
-    reed_solomon.encode(&mut shards).map_err(|_| Error::FragmentationError)?;
-    Ok(shards)
+    reed_solomon.encode(&mut shards).map_err(|_| <ErasureError as Into<JsValue>>::into(ErasureError::FragmentationError))?;
+    Ok(to_value(&shards)?)
    
 }
