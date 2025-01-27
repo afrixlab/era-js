@@ -14,7 +14,7 @@ crate-type = ["cdylib", "rlib"]
 default = ["console_error_panic_hook"]
 
 [dependencies]
-getrandom = "0.2"
+getrandom = "0.3"
 wasm-bindgen = { version = "0.2.92", features = ["serde-serialize"] }
 reed-solomon-erasure = "6.0.0"
 tiny-bip39 = "2.0.0"
