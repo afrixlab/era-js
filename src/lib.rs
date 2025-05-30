@@ -16,6 +16,6 @@ use js_sys::Uint8Array;
 use reed_solomon_erasure::galois_8::ReedSolomon;
 
 use bip32::*;
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 use serde_wasm_bindgen::to_value;
 use wasm_bindgen::prelude::*;

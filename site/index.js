@@ -5,18 +5,18 @@ const {
 
 function main(){
     let seed = new Account(KeyLength.Words24, KeyLanguage.Spanish);
-    //console.log(seed.as_mnemonic())
+    console.log(seed.as_bytes())
 
     let mnemonic = accountFromMnemonic("right pave sketch blanket across oppose route shell favorite domain comfort super");
-    console.log(mnemonic.as_bytes())
+    //console.log(mnemonic.as_bytes())
 
-    let shards = encodeShards(mnemonic.as_bytes(), 2, 3);
-    console.log("shards: ",shards)
+    let shards = encodeShards(seed.as_bytes(), 2, 3);
+    //console.log("shards: ",shards)
 
     
     // recover in javascript
     let recovered = decodeShards([null, null, shards[2], shards[3], shards[4]],2,3);
-    console.log(recovered)
+    //console.log(recovered)
 
 
     let wallet_shards = {

@@ -1,5 +1,7 @@
-use crate::{ErasureError, Uint8Array, Deserialize};
+use js_sys::{Error, EvalError};
+
 use crate::{wasm_bindgen, JsValue, ReedSolomon};
+use crate::{Deserialize, ErasureError, Uint8Array};
 
 // base_wallet -> Shares(vec<vec<u8>>) -> Key -> Signer
 
@@ -10,10 +12,10 @@ use crate::{wasm_bindgen, JsValue, ReedSolomon};
 
 #[wasm_bindgen]
 #[derive(Deserialize)]
-#[serde(deny_unknown_fields)]  
+#[serde(deny_unknown_fields)]
 pub struct BaseWallet {
-    project_shard: Vec<u8>,
-    system_shard: Vec<u8>,
+    project_shard: Option<Vec<u8>>,
+    system_shard: Option<Vec<u8>>,
     recovery_shard: Option<Vec<u8>>,
 }
 
@@ -28,7 +30,7 @@ impl BaseWallet {
     #[wasm_bindgen]
     pub fn reconstruct_shards(&self) -> Result<JsValue, JsValue> {
         let reed_solomon = ReedSolomon::new(2, 3).unwrap();
-        let mut shards = self.build();
+        let mut shards = self.build()?;
         reed_solomon
             .reconstruct(&mut shards)
             .map_err(|_| <ErasureError as Into<JsValue>>::into(ErasureError::FragmentationError))?;
@@ -46,14 +48,32 @@ impl BaseWallet {
 }
 
 impl BaseWallet {
-    pub fn build(&self) -> Vec<Option<Vec<u8>>> {
+    pub fn build(&self) -> Result<Vec<Option<Vec<u8>>>, Error> {
+        match &self {
+            BaseWallet {
+                project_shard: None,
+                system_shard: None,
+                ..
+            } => return Err(EvalError::new("Fields in BaseWallet are missing").into()),
+            BaseWallet {
+                system_shard: None,
+                recovery_shard: None,
+                ..
+            } => return Err(EvalError::new("Fields in BaseWallet are missing").into()),
+            BaseWallet {
+                project_shard: None,
+                recovery_shard: None,
+                ..
+            } => return Err(EvalError::new("Fields in BaseWallet are missing").into()),
+            _ => {}
+        }
         let shards = vec![
             None,
             None,
-            Some(self.project_shard.clone()),
-            Some(self.system_shard.clone()),
+            self.project_shard.clone(),
+            self.system_shard.clone(),
             self.recovery_shard.clone(),
         ];
-        shards
+        Ok(shards)
     }
 }
