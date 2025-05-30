@@ -13,6 +13,45 @@ pub struct Account {
 }
 
 #[wasm_bindgen]
+/// Implementation of the `Account` struct, providing methods for account creation,
+/// serialization, and key derivation using BIP-39 and BIP-32 standards.
+/// 
+/// # Methods
+/// 
+/// - `new(length: KeyLength, lang: KeyLanguage) -> Self`  
+///   Creates a new `Account` instance with a generated mnemonic and seed.
+/// 
+/// - `as_bytes(&self) -> Uint8Array`  
+///   Returns the account seed as a byte array.
+/// 
+/// - `as_mnemonic(&self) -> String`  
+///   Returns the mnemonic phrase as a string.
+/// 
+/// - `as_hex(&self) -> Result<JsValue, JsValue>`  
+///   Returns the seed as a hex string prefixed with `0x`.
+/// 
+/// - `from_str(str: &str) -> Self`  
+///   Creates an `Account` from an existing mnemonic phrase.
+/// 
+/// - `to_bytes(&self) -> Vec<u8>`  
+///   Returns the account seed as a vector of bytes.
+/// 
+/// - `to_str(&self) -> String`  
+///   Returns the mnemonic phrase as a string.
+/// 
+/// - `to_mnemonic(&self) -> String`  
+///   Returns the mnemonic phrase as a string.
+/// 
+/// - `derive_root_key(&self) -> String`  
+///   Derives the root private key from the seed and returns it as a hex string prefixed with `0x`.
+/// 
+/// - `derive_root_public_key(&self) -> String`  
+///   Derives the root public key from the seed and returns it as a string in XPUB format.
+/// 
+/// - `derive_extended_key(&self, path: &str) -> JsValue`  
+///   Derives an extended key from the seed using the provided BIP-32 derivation path and returns it as a JavaScript value.
+/// 
+/// All methods are exposed to JavaScript via `wasm_bindgen` for WebAssembly interoperability.
 impl Account {
     /// Creates a new Account instance
     ///

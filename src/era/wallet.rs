@@ -20,6 +20,22 @@ pub struct BaseWallet {
 }
 
 #[wasm_bindgen]
+/// Implementation of the `BaseWallet` struct with WebAssembly bindings.
+///
+/// # Methods
+///
+/// - `new(value: JsValue) -> Result<BaseWallet, JsValue>`
+///   Constructs a new `BaseWallet` instance from a JavaScript value using Serde for deserialization.
+///   Returns an error if deserialization fails.
+///
+/// - `reconstruct_shards(&self) -> Result<JsValue, JsValue>`
+///   Reconstructs data shards using Reed-Solomon erasure coding. This method:
+///   1. Initializes a Reed-Solomon instance with 2 data shards and 3 parity shards.
+///   2. Builds the shards from the wallet data.
+///   3. Attempts to reconstruct missing shards, returning an error if reconstruction fails.
+///   4. Verifies the integrity of the reconstructed shards.
+///   5. Combines only the data shards into a single byte array and returns it as a JavaScript `Uint8Array`.
+///   Returns a JavaScript error if any step fails.
 impl BaseWallet {
     #[wasm_bindgen(constructor)]
     pub fn new(value: JsValue) -> Result<BaseWallet, JsValue> {
