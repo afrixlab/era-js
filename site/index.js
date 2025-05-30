@@ -1,6 +1,6 @@
 const { 
     Account, KeyLanguage, KeyLength, accountFromMnemonic, 
-    encodeShards, decodeShards , encodeShardsTest, decodeShardsTest
+    encodeShards, decodeShards, BaseWallet 
     } = require('era-js');
 
 function main(){
@@ -15,8 +15,22 @@ function main(){
 
     
     // recover in javascript
-    let recovered = decodeShards([null, null, null, shards[3], shards[4]],2,3);
-    console.log("recoverd: ",recovered)
+    let recovered = decodeShards([null, null, shards[2], shards[3], shards[4]],2,3);
+    console.log(recovered)
+
+
+    let wallet_shards = {
+        project_shard: shards[2],
+        system_shard: shards[3],     
+    }
+    
+
+    let wallet = new BaseWallet(wallet_shards);
+    console.log(wallet)
+
+    let recovery = wallet.reconstruct_shards();
+    console.log(recovery)
+
     
     
 

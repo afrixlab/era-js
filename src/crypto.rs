@@ -1,5 +1,5 @@
-use bip32::Prefix;
 use crate::Serialize;
+use bip32::Prefix;
 
 use super::{Account, DerivationPath, XPrv, XPub};
 

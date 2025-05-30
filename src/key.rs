@@ -1,9 +1,9 @@
+use super::to_value;
 use super::Uint8Array;
 use super::{encode, wasm_bindgen, JsValue};
 use super::{Language, Mnemonic, MnemonicType, Seed};
 use crate::crypto::KeyPath;
 use bip32::Prefix;
-use super::to_value;
 
 /// Represents a BIP-32 account. This object contains a seed and a it's mnemonic.
 #[wasm_bindgen]
