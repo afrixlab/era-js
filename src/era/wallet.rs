@@ -92,4 +92,22 @@ impl BaseWallet {
         ];
         Ok(shards)
     }
+
+    pub fn reconstruct_shards_internal(&self) -> Result<Vec<u8>, Error> {
+        let reed_solomon = ReedSolomon::new(2, 3).unwrap();
+        let mut shards = self.build()?;
+        reed_solomon
+            .reconstruct(&mut shards)
+            .map_err(|_| <ErasureError as Into<JsValue>>::into(ErasureError::FragmentationError))?;
+        let shard_refs: Vec<&[u8]> = shards.iter().map(|x| x.as_deref().unwrap()).collect();
+        reed_solomon
+            .verify(&shard_refs)
+            .map_err(|e| JsValue::from_str(&format!("Verification error: {:?}", e)))?;
+        // // Combine only the data shards
+        let mut full_data = Vec::new();
+        for shard in shards.iter().take(2) {
+            full_data.extend_from_slice(shard.as_ref().unwrap());
+        }
+        Ok(full_data)
+    }
 }

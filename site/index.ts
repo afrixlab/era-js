@@ -1,7 +1,9 @@
 import * as era from 'era-js';
 import axios from 'axios';
 import { CreateWalletRequest } from './types';
+//@ts-ignore
 import { Buffer } from 'buffer';
+
 async function main(){
     let project_id: string = '2764d2e8-ff92-49d5-ac95-f5bbad1d95b8';
     let param: CreateWalletRequest = {
