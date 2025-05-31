@@ -1,7 +1,11 @@
+use bip32::Prefix;
 use js_sys::{Error, EvalError};
 
 use crate::{wasm_bindgen, JsValue, ReedSolomon};
-use crate::{Deserialize, ErasureError, Uint8Array};
+use crate::{Deserialize, ErasureError};
+use crate::{decrypt, encrypt};
+use crate::crypto::KeyPath;
+
 
 // base_wallet -> Shares(vec<vec<u8>>) -> Key -> Signer
 
@@ -44,26 +48,31 @@ impl BaseWallet {
     }
 
     #[wasm_bindgen]
-    pub fn reconstruct_shards(&self) -> Result<JsValue, JsValue> {
-        let reed_solomon = ReedSolomon::new(2, 3).unwrap();
-        let mut shards = self.build()?;
-        reed_solomon
-            .reconstruct(&mut shards)
-            .map_err(|_| <ErasureError as Into<JsValue>>::into(ErasureError::FragmentationError))?;
-        let shard_refs: Vec<&[u8]> = shards.iter().map(|x| x.as_deref().unwrap()).collect();
-        reed_solomon
-            .verify(&shard_refs)
-            .map_err(|e| JsValue::from_str(&format!("Verification error: {:?}", e)))?;
-        // // Combine only the data shards
-        let mut full_data = Vec::new();
-        for shard in shards.iter().take(2) {
-            full_data.extend_from_slice(shard.as_ref().unwrap());
-        }
-        Ok(Uint8Array::from(full_data.as_slice()).into())
+    pub fn reconstruct_shards(&self) -> Result<Vec<u8>, JsValue> {
+        Ok(self.reconstruct_shards_internal()?.into())
+    }
+    
+    /// Builds a base wallet into a root signer key.
+    /// This method assumes that the `BaseWallet` contains atleast the system_shard and one other shard.
+    /// The system shard is in a unencrypted but we assume that other shards are in an encrypted format.
+    /// The builder automatically builds with the project shard unless told otherwise.
+    /// # Arguments
+    ///
+    /// * `password` - The password to the encrypted shard
+    /// * `project_shard` - determines if the builder uses a project shard or not. defaults to `true``
+    ///
+    /// # Returns
+    ///
+    /// A Signer: array of the root key.
+    /// If the data could not be decoded, an error is returned.
+    #[wasm_bindgen]
+    pub fn to_signer(&mut self, password: String, project_shard: Option<bool>) -> Result<Signer, JsValue> {
+        Ok(self.build_signer(password, project_shard)?.into())
     }
 }
 
 impl BaseWallet {
+    /// Builds the base wallet and returns an aligned data and parity shards
     pub fn build(&self) -> Result<Vec<Option<Vec<u8>>>, Error> {
         match &self {
             BaseWallet {
@@ -93,6 +102,7 @@ impl BaseWallet {
         Ok(shards)
     }
 
+    ///  Reconstructs data shards using Reed-Solomon erasure coding. 
     pub fn reconstruct_shards_internal(&self) -> Result<Vec<u8>, Error> {
         let reed_solomon = ReedSolomon::new(2, 3).unwrap();
         let mut shards = self.build()?;
@@ -110,4 +120,87 @@ impl BaseWallet {
         }
         Ok(full_data)
     }
+
+
+    // first decrypt key
+    // reconstruct shard
+    // create signer from shard
+
+    /// Assumes that the personal shard is still encrypted unless given otherwise by passing `project_shard` to false.
+    pub fn build_signer(&mut self, password: String, project_shard: Option<bool>) -> Result<Signer, Error> {
+        // build as a form of validation
+        self.build()?;
+        // check if project_shard arg is false; this means signer is being build with a recovery shard
+        if let Some(project_shard) = project_shard {
+            if !project_shard {
+                if let Some(shard) = self.recovery_shard.take(){
+                    let shard = decrypt(&shard, password.as_bytes())
+                        .map_err(|e| JsValue::from_str(&format!("Decryption error: {:?}", e)))?;
+                    self.recovery_shard = Some(shard);
+                }else {
+                    return Err(JsValue::from_str(&format!("Recovery shard does not exist on base Wallet")).into());
+                }
+            }
+        }else {
+            if let Some(shard) = self.project_shard.take(){
+                let shard = decrypt(&shard, password.as_bytes())
+                     .map_err(|e| JsValue::from_str(&format!("Decryption error: {:?}", e)))?;
+                self.project_shard = Some(shard);
+            }else {
+                return Err(JsValue::from_str(&format!("Project shard does not exist on base Wallet")).into());
+            }
+        }
+        let seed = self.reconstruct_shards_internal()?;
+        Ok(Signer { key: seed })
+
+        
+    }
+}
+
+#[wasm_bindgen]
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Signer {
+    key: Vec<u8>
+}
+
+#[wasm_bindgen]
+impl Signer {
+    #[wasm_bindgen(constructor)]
+    pub fn new(value: Vec<u8>) -> Result<Signer, JsValue> {
+        Ok(Signer { key: value })
+    }
+
+    #[wasm_bindgen]
+    pub fn as_bytes(&self) -> Vec<u8> {
+        self.to_bytes()
+    }
+
+    #[wasm_bindgen]
+    pub fn get_public_key(&self) -> String {
+        self.generate_root_public_key().to_string(Prefix::XPUB)
+    }
+    #[wasm_bindgen]
+    pub fn verify_root_key(&self, public_key: String) -> bool {
+        self.get_public_key() == public_key
+    }
+
+}
+
+impl Signer {
+    pub fn to_bytes(&self) -> Vec<u8> {
+        self.key.clone()
+    }
+}
+
+pub fn decrypt_shards(shards: Vec<u8>, password: String)  {
+    let _decrypted = decrypt(&shards, &password.as_bytes())
+        .map_err(|e| JsValue::from_str(&format!("Encryption error: {:?}", e)));
+   
+}
+
+pub fn encrypt_shards(shards: Vec<u8>, password: String)  {
+    let _encrypted = encrypt(&shards, &password.as_bytes())
+        .map_err(|e| JsValue::from_str(&format!("Encryption error: {:?}", e)));
+   
 }

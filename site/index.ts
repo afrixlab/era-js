@@ -8,7 +8,7 @@ async function main(){
     let project_id: string = '2764d2e8-ff92-49d5-ac95-f5bbad1d95b8';
     let param: CreateWalletRequest = {
         keep_copy: true,
-        identifier: "214678097922",
+        identifier: "219678097921",
         pin: "222333",
         recovery_password: "password1234567"
     }
@@ -21,9 +21,13 @@ async function main(){
         let res = decodeBase64(result.shards[i]);
         decoded.push(res);
     }
-    console.log(decoded[0]);
-    let decrypted = era.decryptShard(decoded[0], param.pin)
-    console.log(decrypted);
+    let base_wallet = new era.BaseWallet({
+        project_shard: decoded[0],
+        system_shard: decoded[1]
+    });
+    let key: era.Signer = base_wallet.to_signer(param.pin);
+    console.log(key.get_public_key());
+    console.log(key.verify_root_key(result.public_key));
 }
 
 
