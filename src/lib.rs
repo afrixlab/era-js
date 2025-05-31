@@ -18,4 +18,5 @@ use reed_solomon_erasure::galois_8::ReedSolomon;
 use serde::{Deserialize, Serialize};
 use serde_wasm_bindgen::to_value;
 pub use simple_crypt::{decrypt, encrypt};
+pub use base64::{Engine, engine::general_purpose};
 use wasm_bindgen::prelude::*;

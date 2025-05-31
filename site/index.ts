@@ -16,14 +16,9 @@ async function main(){
     // let result = await sdk.createWallet(param);
     // console.log(result);
     let result = await sdk.getWallet(param.identifier, true);
-    let decoded: Uint8Array[] = [];
-    for(let i = 0; i < result.shards.length; i++) {
-        let res = decodeBase64(result.shards[i]);
-        decoded.push(res);
-    }
     let base_wallet = new era.BaseWallet({
-        project_shard: decoded[0],
-        system_shard: decoded[1]
+        project_shard: result.shards[0],
+        system_shard: result.shards[1]
     });
     let key: era.Signer = base_wallet.to_signer(param.pin);
     console.log(key.get_public_key());

@@ -5,7 +5,7 @@ use crate::{wasm_bindgen, JsValue, ReedSolomon};
 use crate::{Deserialize, ErasureError};
 use crate::{decrypt, encrypt};
 use crate::crypto::KeyPath;
-
+use crate::{Engine, general_purpose};
 
 // base_wallet -> Shares(vec<vec<u8>>) -> Key -> Signer
 
@@ -43,8 +43,36 @@ pub struct BaseWallet {
 impl BaseWallet {
     #[wasm_bindgen(constructor)]
     pub fn new(value: JsValue) -> Result<BaseWallet, JsValue> {
-        serde_wasm_bindgen::from_value(value)
-            .map_err(|e| JsValue::from_str(&format!("Failed to deserialize BaseWallet: {}", e)))
+        #[wasm_bindgen]
+        #[derive(Deserialize)]
+        #[serde(deny_unknown_fields)]
+        struct Temp {
+            project_shard: Option<String>,
+            system_shard: Option<String>,
+            recovery_shard: Option<String>,
+        }
+        let temp: Temp = serde_wasm_bindgen::from_value(value)
+            .map_err(|e| JsValue::from_str(&format!("Failed to deserialize BaseWallet: {}", e)))?;
+
+        let project_shard = temp.project_shard
+            .map(|x| general_purpose::STANDARD.decode(x))
+            .transpose()
+            .map_err(|e| JsValue::from_str(&format!("Failed to deserialize Project Shard: {}", e)))?;
+        let system_shard = temp.system_shard
+            .map(|x| general_purpose::STANDARD.decode(x))
+            .transpose()
+            .map_err(|e| JsValue::from_str(&format!("Failed to deserialize System Shard: {}", e)))?;
+        let recovery_shard = temp.recovery_shard
+            .map(|x| general_purpose::STANDARD.decode(x))
+            .transpose()
+            .map_err(|e| JsValue::from_str(&format!("Failed to deserialize Recovery Shard: {}", e)))?;
+
+        
+        Ok(Self {
+            project_shard,
+            system_shard,
+            recovery_shard
+        })
     }
 
     #[wasm_bindgen]
