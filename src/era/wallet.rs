@@ -1,11 +1,11 @@
 use bip32::Prefix;
 use js_sys::{Error, EvalError};
 
+use crate::crypto::crypto::KeyPath;
+use crate::decrypt;
+use crate::{general_purpose, Engine};
 use crate::{wasm_bindgen, JsValue, ReedSolomon};
-use crate::{Deserialize, ErasureError};
-use crate::{decrypt, encrypt};
-use crate::crypto::KeyPath;
-use crate::{Engine, general_purpose};
+use crate::{Deserialize, erasure_coding::ErasureError};
 
 // base_wallet -> Shares(vec<vec<u8>>) -> Key -> Signer
 
@@ -41,6 +41,8 @@ pub struct BaseWallet {
 ///   5. Combines only the data shards into a single byte array and returns it as a JavaScript `Uint8Array`.
 ///   Returns a JavaScript error if any step fails.
 impl BaseWallet {
+    /// This function takes an object as an arguement and returns a base wallet.
+    /// It decodes the base64 encoded shards and builds it into an object.
     #[wasm_bindgen(constructor)]
     pub fn new(value: JsValue) -> Result<BaseWallet, JsValue> {
         #[wasm_bindgen]
@@ -52,26 +54,34 @@ impl BaseWallet {
             recovery_shard: Option<String>,
         }
         let temp: Temp = serde_wasm_bindgen::from_value(value)
-            .map_err(|e| JsValue::from_str(&format!("Failed to deserialize BaseWallet: {}", e)))?;
+            .map_err(|e| JsValue::from_str(&format!("Failed to deserialize BaseWallet::expected base64 string, got: {}", e)))?;
 
-        let project_shard = temp.project_shard
+        let project_shard = temp
+            .project_shard
             .map(|x| general_purpose::STANDARD.decode(x))
             .transpose()
-            .map_err(|e| JsValue::from_str(&format!("Failed to deserialize Project Shard: {}", e)))?;
-        let system_shard = temp.system_shard
+            .map_err(|e| {
+                JsValue::from_str(&format!("Failed to deserialize Project Shard: {}", e))
+            })?;
+        let system_shard = temp
+            .system_shard
             .map(|x| general_purpose::STANDARD.decode(x))
             .transpose()
-            .map_err(|e| JsValue::from_str(&format!("Failed to deserialize System Shard: {}", e)))?;
-        let recovery_shard = temp.recovery_shard
+            .map_err(|e| {
+                JsValue::from_str(&format!("Failed to deserialize System Shard: {}", e))
+            })?;
+        let recovery_shard = temp
+            .recovery_shard
             .map(|x| general_purpose::STANDARD.decode(x))
             .transpose()
-            .map_err(|e| JsValue::from_str(&format!("Failed to deserialize Recovery Shard: {}", e)))?;
+            .map_err(|e| {
+                JsValue::from_str(&format!("Failed to deserialize Recovery Shard: {}", e))
+            })?;
 
-        
         Ok(Self {
             project_shard,
             system_shard,
-            recovery_shard
+            recovery_shard,
         })
     }
 
@@ -79,7 +89,7 @@ impl BaseWallet {
     pub fn reconstruct_shards(&self) -> Result<Vec<u8>, JsValue> {
         Ok(self.reconstruct_shards_internal()?.into())
     }
-    
+
     /// Builds a base wallet into a root signer key.
     /// This method assumes that the `BaseWallet` contains atleast the system_shard and one other shard.
     /// The system shard is in a unencrypted but we assume that other shards are in an encrypted format.
@@ -94,9 +104,16 @@ impl BaseWallet {
     /// A Signer: array of the root key.
     /// If the data could not be decoded, an error is returned.
     #[wasm_bindgen]
-    pub fn to_signer(&mut self, password: String, project_shard: Option<bool>) -> Result<Signer, JsValue> {
+    pub fn to_signer(
+        &mut self,
+        password: String,
+        project_shard: Option<bool>,
+    ) -> Result<Signer, JsValue> {
         Ok(self.build_signer(password, project_shard)?.into())
     }
+
+
+    pub fn to_polkadot_signer(){}
 }
 
 impl BaseWallet {
@@ -130,7 +147,7 @@ impl BaseWallet {
         Ok(shards)
     }
 
-    ///  Reconstructs data shards using Reed-Solomon erasure coding. 
+    ///  Reconstructs data shards using Reed-Solomon erasure coding.
     pub fn reconstruct_shards_internal(&self) -> Result<Vec<u8>, Error> {
         let reed_solomon = ReedSolomon::new(2, 3).unwrap();
         let mut shards = self.build()?;
@@ -149,39 +166,46 @@ impl BaseWallet {
         Ok(full_data)
     }
 
-
     // first decrypt key
     // reconstruct shard
     // create signer from shard
 
     /// Assumes that the personal shard is still encrypted unless given otherwise by passing `project_shard` to false.
-    pub fn build_signer(&mut self, password: String, project_shard: Option<bool>) -> Result<Signer, Error> {
+    pub fn build_signer(
+        &mut self,
+        password: String,
+        project_shard: Option<bool>,
+    ) -> Result<Signer, Error> {
         // build as a form of validation
         self.build()?;
         // check if project_shard arg is false; this means signer is being build with a recovery shard
         if let Some(project_shard) = project_shard {
             if !project_shard {
-                if let Some(shard) = self.recovery_shard.take(){
+                if let Some(shard) = self.recovery_shard.take() {
                     let shard = decrypt(&shard, password.as_bytes())
                         .map_err(|e| JsValue::from_str(&format!("Decryption error: {:?}", e)))?;
                     self.recovery_shard = Some(shard);
-                }else {
-                    return Err(JsValue::from_str(&format!("Recovery shard does not exist on base Wallet")).into());
+                } else {
+                    return Err(JsValue::from_str(&format!(
+                        "Recovery shard does not exist on base Wallet"
+                    ))
+                    .into());
                 }
             }
-        }else {
-            if let Some(shard) = self.project_shard.take(){
+        } else {
+            if let Some(shard) = self.project_shard.take() {
                 let shard = decrypt(&shard, password.as_bytes())
-                     .map_err(|e| JsValue::from_str(&format!("Decryption error: {:?}", e)))?;
+                    .map_err(|e| JsValue::from_str(&format!("Decryption error: {:?}", e)))?;
                 self.project_shard = Some(shard);
-            }else {
-                return Err(JsValue::from_str(&format!("Project shard does not exist on base Wallet")).into());
+            } else {
+                return Err(JsValue::from_str(&format!(
+                    "Project shard does not exist on base Wallet"
+                ))
+                .into());
             }
         }
         let seed = self.reconstruct_shards_internal()?;
         Ok(Signer { key: seed })
-
-        
     }
 }
 
@@ -189,7 +213,7 @@ impl BaseWallet {
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Signer {
-    key: Vec<u8>
+    key: Vec<u8>,
 }
 
 #[wasm_bindgen]
@@ -212,7 +236,6 @@ impl Signer {
     pub fn verify_root_key(&self, public_key: String) -> bool {
         self.get_public_key() == public_key
     }
-
 }
 
 impl Signer {
@@ -221,14 +244,54 @@ impl Signer {
     }
 }
 
-pub fn decrypt_shards(shards: Vec<u8>, password: String)  {
-    let _decrypted = decrypt(&shards, &password.as_bytes())
-        .map_err(|e| JsValue::from_str(&format!("Encryption error: {:?}", e)));
-   
-}
 
-pub fn encrypt_shards(shards: Vec<u8>, password: String)  {
-    let _encrypted = encrypt(&shards, &password.as_bytes())
-        .map_err(|e| JsValue::from_str(&format!("Encryption error: {:?}", e)));
-   
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#[wasm_bindgen()]
+pub fn new_with_object(value: JsValue) {
+    let obj = js_sys::Object::from(value);
+
+    let get_string = |key: &str| -> Result<Option<Vec<u8>>, JsValue> {
+        let val = js_sys::Reflect::get(&obj, &JsValue::from_str(key))?;
+        if val.is_undefined() || val.is_null() {
+            Ok(None)
+        } else {
+            let s = val
+                .as_string()
+                .ok_or_else(|| JsValue::from_str(&format!("Field '{key}' must be a string")))?;
+            general_purpose::STANDARD
+                .decode(&s)
+                .map(Some)
+                .map_err(|e| JsValue::from_str(&format!("Failed to decode '{key}': {e}")))
+        }
+    };
+
+    BaseWallet {
+        project_shard: get_string("project_shard").unwrap(),
+        system_shard: get_string("system_shard").unwrap(),
+        recovery_shard: get_string("recovery_shard").unwrap(),
+    };
 }

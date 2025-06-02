@@ -1,7 +1,7 @@
 use crate::{wallet::Signer, Serialize};
 use bip32::Prefix;
 
-use super::{Account, DerivationPath, XPrv, XPub};
+use crate::{key::Account, DerivationPath, XPrv, XPub};
 
 #[derive(Debug, Serialize)]
 pub struct KeyObject {
@@ -53,7 +53,6 @@ impl KeyPath for Account {
     }
 }
 
-
 impl KeyPath for Signer {
     type KeyObject = KeyObject;
 
@@ -81,4 +80,19 @@ impl KeyPath for Signer {
         };
         key_object
     }
+}
+
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_key_path() {
+        let account = Account::from_str("right pave sketch blanket across oppose route shell favorite domain comfort super");
+        let key_object = account.generate_extended_key("m/44'/60'/0'/0/0");
+        assert!(key_object.private_key.starts_with("0x"));
+    }
+
 }

@@ -1,15 +1,15 @@
-mod crypto;
 mod era;
-mod erasure_coding;
-mod key;
+mod crypto;
+mod chains;
 
-pub use crypto::*;
-pub use era::*;
-pub use erasure_coding::*;
-pub use key::*;
+use crypto::*;
+use era::*;
+use chains::*;
+
 
 //use anyhow::Result;
 
+pub use base64::{engine::general_purpose, Engine};
 use bip32::*;
 use bip39::{Language, Mnemonic, MnemonicType, Seed};
 use hex::*;
@@ -18,5 +18,5 @@ use reed_solomon_erasure::galois_8::ReedSolomon;
 use serde::{Deserialize, Serialize};
 use serde_wasm_bindgen::to_value;
 pub use simple_crypt::{decrypt, encrypt};
-pub use base64::{Engine, engine::general_purpose};
 use wasm_bindgen::prelude::*;
+pub use sp_core::{sr25519, Pair, crypto::Ss58Codec};

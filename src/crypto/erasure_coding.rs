@@ -2,7 +2,7 @@
 use std::fmt;
 use std::fmt::Display;
 
-use super::{to_value, wasm_bindgen, JsValue, ReedSolomon, Uint8Array};
+use crate::{to_value, wasm_bindgen, JsValue, ReedSolomon, Uint8Array};
 
 #[derive(Debug)]
 pub enum ErasureError {

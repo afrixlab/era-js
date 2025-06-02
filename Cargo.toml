@@ -27,6 +27,7 @@ js-sys = "0.3.69"
 bip32 = "0.5.2"
 simple_crypt = "0.2.3"
 base64 = "0.22.1"
+sp-core = {version = "36.1.0", default-features = false}
 
 [dev-dependencies]
 wasm-bindgen-test = "0.3.34"
