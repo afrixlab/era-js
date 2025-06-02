@@ -13,5 +13,3 @@ pub fn encrypt_shards(shards: Vec<u8>, password: String) -> Result<JsValue, JsVa
         .map_err(|e| JsValue::from_str(&format!("Encryption error: {:?}", e)))?;
     Ok(Uint8Array::from(encrypted.as_slice()).into())
 }
-
-

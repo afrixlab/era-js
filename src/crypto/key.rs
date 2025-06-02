@@ -1,8 +1,8 @@
+use crate::crypto::crypto::KeyPath;
 use crate::to_value;
 use crate::Uint8Array;
 use crate::{encode, wasm_bindgen, JsValue};
 use crate::{Language, Mnemonic, MnemonicType, Seed};
-use crate::crypto::crypto::KeyPath;
 use bip32::Prefix;
 
 /// Represents a BIP-32 account. This object contains a seed and a it's mnemonic.

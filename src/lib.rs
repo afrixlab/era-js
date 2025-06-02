@@ -1,11 +1,10 @@
-mod era;
-mod crypto;
 mod chains;
+mod crypto;
+mod era;
 
 use crypto::*;
 use era::*;
-use chains::*;
-
+//use chains::*;
 
 //use anyhow::Result;
 
@@ -18,5 +17,5 @@ use reed_solomon_erasure::galois_8::ReedSolomon;
 use serde::{Deserialize, Serialize};
 use serde_wasm_bindgen::to_value;
 pub use simple_crypt::{decrypt, encrypt};
+pub use sp_core::{crypto::Ss58Codec, sr25519, Pair};
 use wasm_bindgen::prelude::*;
-pub use sp_core::{sr25519, Pair, crypto::Ss58Codec};

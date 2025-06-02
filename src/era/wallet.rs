@@ -1,11 +1,12 @@
 use bip32::Prefix;
 use js_sys::{Error, EvalError};
 
+use crate::chains::polkadot::PolkadotSigner;
 use crate::crypto::crypto::KeyPath;
 use crate::decrypt;
+use crate::{erasure_coding::ErasureError, Deserialize};
 use crate::{general_purpose, Engine};
 use crate::{wasm_bindgen, JsValue, ReedSolomon};
-use crate::{Deserialize, erasure_coding::ErasureError};
 
 // base_wallet -> Shares(vec<vec<u8>>) -> Key -> Signer
 
@@ -53,8 +54,12 @@ impl BaseWallet {
             system_shard: Option<String>,
             recovery_shard: Option<String>,
         }
-        let temp: Temp = serde_wasm_bindgen::from_value(value)
-            .map_err(|e| JsValue::from_str(&format!("Failed to deserialize BaseWallet::expected base64 string, got: {}", e)))?;
+        let temp: Temp = serde_wasm_bindgen::from_value(value).map_err(|e| {
+            JsValue::from_str(&format!(
+                "Failed to deserialize BaseWallet::expected base64 string, got: {}",
+                e
+            ))
+        })?;
 
         let project_shard = temp
             .project_shard
@@ -112,8 +117,21 @@ impl BaseWallet {
         Ok(self.build_signer(password, project_shard)?.into())
     }
 
+    #[wasm_bindgen]
+    pub fn to_polkadot_signer(
+        &mut self,
+        password: String,
+        project_shard: Option<bool>,
+    ) -> Result<PolkadotSigner, JsValue> {
+    //) -> Result<u8, JsValue> {
 
-    pub fn to_polkadot_signer(){}
+        let signer = self
+            .build_signer(password, project_shard)
+            .map_err(|e| JsValue::from_str(&format!("Signer Error: {:?}", e)))?;
+        let key = signer.generate_extended_key("m/0'");
+        let signer = PolkadotSigner::new(key.private_key, "m/0'".into());
+        Ok(signer)
+    }
 }
 
 impl BaseWallet {
@@ -243,32 +261,6 @@ impl Signer {
         self.key.clone()
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 #[wasm_bindgen()]
 pub fn new_with_object(value: JsValue) {

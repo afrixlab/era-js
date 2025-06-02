@@ -82,17 +82,16 @@ impl KeyPath for Signer {
     }
 }
 
-
-
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
     fn test_key_path() {
-        let account = Account::from_str("right pave sketch blanket across oppose route shell favorite domain comfort super");
-        let key_object = account.generate_extended_key("m/44'/60'/0'/0/0");
+        let account = Account::from_str(
+            "right pave sketch blanket across oppose route shell favorite domain comfort super",
+        );
+        let key_object = account.generate_extended_key("/");
         assert!(key_object.private_key.starts_with("0x"));
     }
-
 }

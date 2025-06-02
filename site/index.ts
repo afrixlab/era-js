@@ -8,21 +8,24 @@ async function main(){
     let project_id: string = '2764d2e8-ff92-49d5-ac95-f5bbad1d95b8';
     let param: CreateWalletRequest = {
         keep_copy: true,
-        identifier: "219678097921",
+        identifier: "219678097000",
         pin: "222333",
         recovery_password: "password1234567"
     }
     let sdk = new EraSDK(project_id);
-    // let result = await sdk.createWallet(param);
-    // console.log(result);
+    // let response = await sdk.createWallet(param);
+    // console.log(response);
     let result = await sdk.getWallet(param.identifier, true);
     let base_wallet = new era.BaseWallet({
         project_shard: result.shards[0],
         system_shard: result.shards[1]
     });
-    let key: era.Signer = base_wallet.to_signer(param.pin);
-    console.log(key.get_public_key());
-    console.log(key.verify_root_key(result.public_key));
+    // let key: era.Signer = base_wallet.to_signer(param.pin);
+    // console.log(key.get_public_key());
+    // console.log(key.verify_root_key(result.public_key));
+
+    let polkadot_signer = base_wallet.to_polkadot_signer(param.pin);
+    console.log(polkadot_signer.fetch_key())
 }
 
 
