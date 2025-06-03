@@ -13,7 +13,7 @@ pub struct KeyObject {
     pub depth: u8,
 }
 
-pub trait KeyPath {
+pub trait  Ecdsa {
     type KeyObject;
 
     /// Generates the root private key from the seed
@@ -24,7 +24,7 @@ pub trait KeyPath {
     fn generate_extended_key(&self, path: &str) -> Self::KeyObject;
 }
 
-impl KeyPath for Account {
+impl Ecdsa for Account {
     type KeyObject = KeyObject;
 
     fn generate_root_key(&self) -> XPrv {
@@ -53,7 +53,7 @@ impl KeyPath for Account {
     }
 }
 
-impl KeyPath for Signer {
+impl Ecdsa for Signer {
     type KeyObject = KeyObject;
 
     fn generate_root_key(&self) -> XPrv {

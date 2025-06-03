@@ -1,8 +1,8 @@
-use bip32::Prefix;
+use bip39::{Language, Mnemonic, Seed};
 use js_sys::{Error, EvalError};
 
 use crate::chains::polkadot::PolkadotSigner;
-use crate::crypto::crypto::KeyPath;
+use sp_core::{sr25519, Pair};
 use crate::decrypt;
 use crate::{erasure_coding::ErasureError, Deserialize};
 use crate::{general_purpose, Engine};
@@ -95,9 +95,10 @@ impl BaseWallet {
         Ok(self.reconstruct_shards_internal()?.into())
     }
 
-    /// Builds a base wallet into a root signer key.
+    /// Builds a base wallet into a root signer key. 
+    /// This should be the first action after the instanciation of the wallet
     /// This method assumes that the `BaseWallet` contains atleast the system_shard and one other shard.
-    /// The system shard is in a unencrypted but we assume that other shards are in an encrypted format.
+    /// The system shard is in a unencrypted format but we assume that other shards are in an encrypted format.
     /// The builder automatically builds with the project shard unless told otherwise.
     /// # Arguments
     ///
@@ -109,7 +110,7 @@ impl BaseWallet {
     /// A Signer: array of the root key.
     /// If the data could not be decoded, an error is returned.
     #[wasm_bindgen]
-    pub fn to_signer(
+    pub fn build(
         &mut self,
         password: String,
         project_shard: Option<bool>,
@@ -118,25 +119,17 @@ impl BaseWallet {
     }
 
     #[wasm_bindgen]
-    pub fn to_polkadot_signer(
-        &mut self,
-        password: String,
-        project_shard: Option<bool>,
-    ) -> Result<PolkadotSigner, JsValue> {
-    //) -> Result<u8, JsValue> {
-
-        let signer = self
-            .build_signer(password, project_shard)
-            .map_err(|e| JsValue::from_str(&format!("Signer Error: {:?}", e)))?;
-        let key = signer.generate_extended_key("m/0'");
-        let signer = PolkadotSigner::new(key.private_key, "m/0'".into());
-        Ok(signer)
+    pub fn verify_key(&self, hash: String) -> Result<bool, JsValue> {
+        let entropy = self.reconstruct_shards_internal()?;
+        let entropy_hash = blake3::hash(&entropy).to_string();
+        Ok(entropy_hash == hash)
     }
+
 }
 
 impl BaseWallet {
     /// Builds the base wallet and returns an aligned data and parity shards
-    pub fn build(&self) -> Result<Vec<Option<Vec<u8>>>, Error> {
+    pub fn validate(&self) -> Result<Vec<Option<Vec<u8>>>, Error> {
         match &self {
             BaseWallet {
                 project_shard: None,
@@ -168,7 +161,7 @@ impl BaseWallet {
     ///  Reconstructs data shards using Reed-Solomon erasure coding.
     pub fn reconstruct_shards_internal(&self) -> Result<Vec<u8>, Error> {
         let reed_solomon = ReedSolomon::new(2, 3).unwrap();
-        let mut shards = self.build()?;
+        let mut shards = self.validate()?;
         reed_solomon
             .reconstruct(&mut shards)
             .map_err(|_| <ErasureError as Into<JsValue>>::into(ErasureError::FragmentationError))?;
@@ -195,7 +188,7 @@ impl BaseWallet {
         project_shard: Option<bool>,
     ) -> Result<Signer, Error> {
         // build as a form of validation
-        self.build()?;
+        self.validate()?;
         // check if project_shard arg is false; this means signer is being build with a recovery shard
         if let Some(project_shard) = project_shard {
             if !project_shard {
@@ -222,8 +215,12 @@ impl BaseWallet {
                 .into());
             }
         }
-        let seed = self.reconstruct_shards_internal()?;
-        Ok(Signer { key: seed })
+        let entropy = self.reconstruct_shards_internal()?;
+        let mnemonic: Mnemonic = Mnemonic::from_entropy(entropy.as_slice(), Language::English)
+            .map_err(|e| JsValue::from_str(&format!("Could not generate seed: {:?}", e)))?;
+        let phrase = mnemonic.phrase().into();
+        let seed = Seed::new(&mnemonic, "").as_bytes().to_vec();
+        Ok(Signer { seed, phrase })
     }
 }
 
@@ -231,34 +228,39 @@ impl BaseWallet {
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Signer {
-    key: Vec<u8>,
+    // HD seed of the signer
+    seed: Vec<u8>,
+    // Mnemonic of the signer
+    phrase: String
 }
 
 #[wasm_bindgen]
 impl Signer {
     #[wasm_bindgen(constructor)]
-    pub fn new(value: Vec<u8>) -> Result<Signer, JsValue> {
-        Ok(Signer { key: value })
+    pub fn new(seed: Vec<u8>, phrase: String) -> Result<Signer, JsValue> {
+        Ok(Signer { seed, phrase })
+    }
+  
+    #[wasm_bindgen]
+    pub fn as_mnemonic(&self) -> String {
+        self.phrase.clone()
+    }
+    #[wasm_bindgen]
+    pub fn to_polkadot_signer(&self) -> Result<PolkadotSigner, JsValue> {
+        let derivation = "//polkadot//0"; // Polkadot-style hard derivation
+        let full_uri = format!("{}{}", self.phrase, derivation);
+        let pair = sr25519::Pair::from_string(&full_uri, None) 
+            .map_err(|e| JsValue::from_str(&format!("Could not generate seed: {:?}", e)))?;
+        let signer = PolkadotSigner::new(pair.to_raw_vec(), derivation.into());
+        Ok(signer)
     }
 
-    #[wasm_bindgen]
-    pub fn as_bytes(&self) -> Vec<u8> {
-        self.to_bytes()
-    }
 
-    #[wasm_bindgen]
-    pub fn get_public_key(&self) -> String {
-        self.generate_root_public_key().to_string(Prefix::XPUB)
-    }
-    #[wasm_bindgen]
-    pub fn verify_root_key(&self, public_key: String) -> bool {
-        self.get_public_key() == public_key
-    }
 }
 
 impl Signer {
     pub fn to_bytes(&self) -> Vec<u8> {
-        self.key.clone()
+        self.seed.clone()
     }
 }
 

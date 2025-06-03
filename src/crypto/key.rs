@@ -1,4 +1,4 @@
-use crate::crypto::crypto::KeyPath;
+use crate::crypto::crypto::Ecdsa;
 use crate::to_value;
 use crate::Uint8Array;
 use crate::{encode, wasm_bindgen, JsValue};

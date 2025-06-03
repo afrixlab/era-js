@@ -8,7 +8,7 @@ async function main(){
     let project_id: string = '2764d2e8-ff92-49d5-ac95-f5bbad1d95b8';
     let param: CreateWalletRequest = {
         keep_copy: true,
-        identifier: "219678097000",
+        identifier: "219678097099021",
         pin: "222333",
         recovery_password: "password1234567"
     }
@@ -20,12 +20,18 @@ async function main(){
         project_shard: result.shards[0],
         system_shard: result.shards[1]
     });
-    // let key: era.Signer = base_wallet.to_signer(param.pin);
-    // console.log(key.get_public_key());
-    // console.log(key.verify_root_key(result.public_key));
+    console.log(result.seed_hash);
 
-    let polkadot_signer = base_wallet.to_polkadot_signer(param.pin);
+    let key: era.Signer = base_wallet.build(param.pin);
+    console.log(key.as_mnemonic());
+
+    console.log(base_wallet.verify_key(result.seed_hash));
+
+    let polkadot_signer: era.PolkadotSigner = key.to_polkadot_signer();
     console.log(polkadot_signer.fetch_key())
+    let message = Buffer.from([62, 75, 66, 66, 65, 72]);
+    let signature = polkadot_signer.sign_transaction(message)
+    console.log(signature)
 }
 
 

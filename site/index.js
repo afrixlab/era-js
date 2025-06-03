@@ -54,6 +54,7 @@ function main(){
     // let key = mnemonic.derive_extended_key(path);
     // console.log(key)
 
+
 }
 
 main()
