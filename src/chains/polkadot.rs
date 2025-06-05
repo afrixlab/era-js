@@ -31,7 +31,7 @@ impl PolkadotSigner {
 
     #[wasm_bindgen]
     pub fn sign_transaction(&self, message: &[u8]) -> Result<Vec<u8>, JsValue> {
-        let sig = self.sign(&[0,0,0]);
+        let sig = self.sign(message);
         Ok(sig.to_vec())
     }
 }

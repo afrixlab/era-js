@@ -14,7 +14,7 @@ crate-type = ["cdylib", "rlib"]
 default = ["console_error_panic_hook"]
 
 [dependencies]
-getrandom = "0.2"
+getrandom = {version = "0.2.15", features= ["js", "rdrand"] }
 wasm-bindgen = { version = "0.2.92", features = ["serde-serialize"] }
 reed-solomon-erasure = { version = "6.0.0", default-features = false}
 tiny-bip39 = "2.0.0"
@@ -27,14 +27,14 @@ js-sys = "0.3.69"
 bip32 = "0.5.2"
 simple_crypt = "0.2.3"
 base64 = "0.22.1"
-sp-core = {version = "36.1.0", default-features = false, features = ["full_crypto", "blake2", "bs58","serde",]}
+sp-core = {version = "36.1.0", default-features = false, features = ["full_crypto", "blake2", "bs58","serde","rand", "secp256k1"]}
 blake3 = "1.8.2"
 
 [dev-dependencies]
 wasm-bindgen-test = "0.3.34"
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
-getrandom = { version = "0.2", features = ["js"] }
+getrandom = { version = "0.2.15", features = ["wasm-bindgen"] }
 
 [package.metadata.wasm-pack.profile.release]
 wasm-opt = false  
