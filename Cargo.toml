@@ -14,7 +14,7 @@ crate-type = ["cdylib", "rlib"]
 default = ["console_error_panic_hook"]
 
 [dependencies]
-getrandom = {version = "0.2.15", features= ["js", "rdrand"] }
+getrandom = {version = "0.3.3", features= ["js", "rdrand"] }
 wasm-bindgen = { version = "0.2.92", features = ["serde-serialize"] }
 reed-solomon-erasure = { version = "6.0.0", default-features = false}
 tiny-bip39 = "2.0.0"
